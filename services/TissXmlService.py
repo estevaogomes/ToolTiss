@@ -98,7 +98,7 @@ class TissXmlService:
                     elem.text = str(random.choice(banco_carteiras))
                     contador_alteracoes += 1
 
-                elif tag_nome in ("numeroLote", "sequencialTransacao"):
+                elif tag_nome in ("numeroLote", "sequencialTransacao") and config.ALTERAR_TRANSACAO_LOTE:
                     if(config.UTILIZAR_RANDOM_TRANSACAO):
                         elem.text = str(random.randint(0,1000000))
                     else:

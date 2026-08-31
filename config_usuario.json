@@ -1,0 +1,17 @@
+{
+    "modo_exec": "arquivo",
+    "p_origem": "C:\\Users\\t2730\\Documents\\Airlines\\Torre Utilização - ACM\\Teste WS Tiss\\ToolTiss",
+    "arq_unico": "contas.xml",
+    "planilha": "dados.csv",
+    "coluna": "num_carteira",
+    "url_ws": "http://or2tasyhtmlpj01:8082/TISS40200OPS/tissLoteGuias",
+    "action": "",
+    "timeout": "100000",
+    "p_resposta": "",
+    "sw_alterar": 1,
+    "sw_guias": 1,
+    "sw_enviar": 1,
+    "sw_rand": 1,
+    "sw_transacao": 1,
+    "sw_sobrescrever": 0
+}
