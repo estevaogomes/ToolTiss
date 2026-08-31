@@ -1,0 +1,13 @@
+# Arquivos de ambiente e execução do Python
+__pycache__/
+*.pyc
+
+# Pastas geradas pelo PyInstaller ao criar o .exe
+build/
+dist/
+*.spec
+
+# Arquivos locais de log e dados que você não quer compartilhar
+*.csv
+*.txt
+*.xml

@@ -1,4 +1,5 @@
 import hashlib
+import nt
 import random
 import re
 import sys
@@ -106,11 +107,13 @@ class TissXmlService:
                         elem.text = str(valor_atual + 1)
 
                 elif tag_nome == "numeroGuiaPrestador":
-                    guia_atual = random.randint(1000, 9999999)  # Sorteia apenas aqui!
-                    elem.text = str(guia_atual)
+                    if(config.ALTERAR_GUIAS):
+                        guia_atual = random.randint(1000, 9999999)  # Sorteia apenas aqui!
+                        elem.text = str(guia_atual)
 
                 elif tag_nome in ("numeroGuiaOperadora", "senha", "guiaPrincipal", "guiaSolicInternacao") and guia_atual is not None:
-                    elem.text = str(guia_atual)  # Reutiliza a guia sorteada no prestador
+                    if(config.ALTERAR_GUIAS):
+                        elem.text = str(guia_atual)  # Reutiliza a guia sorteada no prestador
                 
 
             if contador_alteracoes == 0:

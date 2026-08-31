@@ -8,16 +8,19 @@ CAMINHO_XML_ENVIAR = "saida.xml"
 URL_OPERADORA = "http://or2tasyhtmlpj01:8082/TISS40200OPS/tissLoteGuias"
 ENVIAR_WS = True
 ALTERAR_LOTES = True
+ALTERAR_GUIAS = True
+SOBRESCREVER_ENTRADA = False
+PASTA_RESPOSTA = ""
     
     # Nome da coluna a ser lida na planilha (Opcional, mude para None se quiser ler a 1ª coluna)
 COLUNA_ALVO = "num_carteira"
 
 
 # Caminhos de Arquivos Padrão
-XML_ENTRADA = os.getenv("TISS_XML_ENTRADA", "contas.xml")
-XML_MASCARADO = os.getenv("TISS_XML_SAIDA", "saida.xml")
-PLANILHA_CARTEIRAS = os.getenv("TISS_PLANILHA", "dados.csv")
-COLUNA_PLANILHA = os.getenv("TISS_COLUNA_CARTEIRA", None)
+#XML_ENTRADA = os.getenv("TISS_XML_ENTRADA", "contas.xml")
+#XML_MASCARADO = os.getenv("TISS_XML_SAIDA", "saida.xml")
+#PLANILHA_CARTEIRAS = os.getenv("TISS_PLANILHA", "dados.csv")
+#COLUNA_PLANILHA = os.getenv("TISS_COLUNA_CARTEIRA", None)
 
 # Endereços do WebService da Operadora de Saúde
 URL_SISOAP = os.getenv(
