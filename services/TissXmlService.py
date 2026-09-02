@@ -81,7 +81,8 @@ class TissXmlService:
                 ET.register_namespace(prefix, uri)
 
             # Realiza o Parse do arquivo XML estruturado
-            tree = ET.parse(xml_origem)
+            parser = ET.XMLParser(encoding="iso-8859-1")
+            tree = ET.parse(xml_origem, parser)
             root = tree.getroot()
 
             # Substitui os valores de todas as ocorrências da tag numeroCarteira, sequencialTransacao e numeroLote
