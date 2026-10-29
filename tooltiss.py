@@ -115,24 +115,24 @@ class TissMasterGUI(ctk.CTk):
         if getattr(config, 'ALTERAR_CARTEIRAS', True): self.sw_carteiras.select()
 
         self.sw_guias = ctk.CTkSwitch(f_switches, text="ALTERAR_GUIAS (Modificar números de guias)", font=ctk.CTkFont(weight="bold"))
-        self.sw_guias.grid(row=0, column=1, padx=10, pady=4, sticky="w")
+        self.sw_guias.grid(row=1, column=0, padx=10, pady=4, sticky="w")
         if getattr(config, 'ALTERAR_GUIAS', True): self.sw_guias.select()
 
         self.sw_enviar = ctk.CTkSwitch(f_switches, text="ENVIAR_WS (Transmitir via SOAP)", font=ctk.CTkFont(weight="bold"))
-        self.sw_enviar.grid(row=1, column=0, padx=10, pady=4, sticky="w")
+        self.sw_enviar.grid(row=1, column=1, padx=10, pady=4, sticky="w")
         if config.ENVIAR_WS: self.sw_enviar.select()
 
         self.sw_rand = ctk.CTkSwitch(f_switches, text="UTILIZAR_RANDOM_TRANSACAO", font=ctk.CTkFont(weight="bold"))
-        self.sw_rand.grid(row=1, column=1, padx=10, pady=4, sticky="w")
+        self.sw_rand.grid(row=2, column=0, padx=10, pady=4, sticky="w")
         if config.UTILIZAR_RANDOM_TRANSACAO: self.sw_rand.select()
 
         # NOVO SWITCH INDEPENDENTE: ALTERAR_TRANSACAO_LOTE solicitado
         self.sw_transacao = ctk.CTkSwitch(f_switches, text="ALTERAR_TRANSACAO_LOTE (Opção de transações)", font=ctk.CTkFont(weight="bold"))
-        self.sw_transacao.grid(row=2, column=0, padx=10, pady=4, sticky="w")
+        self.sw_transacao.grid(row=2, column=1, padx=10, pady=4, sticky="w")
         if getattr(config, 'ALTERAR_TRANSACAO_LOTE', True): self.sw_transacao.select()
 
         self.sw_sobrescrever = ctk.CTkSwitch(f_switches, text="SOBRESCREVER_ENTRADA (Gravar por cima do original)", font=ctk.CTkFont(weight="bold"))
-        self.sw_sobrescrever.grid(row=2, column=1, padx=10, pady=4, sticky="w")
+        self.sw_sobrescrever.grid(row=3, column=0, padx=10, pady=4, sticky="w")
         if getattr(config, 'SOBRESCREVER_ENTRADA', False): self.sw_sobrescrever.select()
 
         f_txt = ctk.CTkFrame(self.t_config)
