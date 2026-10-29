@@ -9,6 +9,7 @@ URL_OPERADORA = "http://or2tasyhtmlpj01:8082/TISS40200OPS/tissLoteGuias"
 ENVIAR_WS = True
 ALTERAR_TRANSACAO_LOTE = True
 ALTERAR_LOTES = True
+ALTERAR_CARTEIRAS = True  # Controla apenas o mascaramento de numeroCarteira (independente de ALTERAR_LOTES)
 ALTERAR_GUIAS = True
 SOBRESCREVER_ENTRADA = False
 PASTA_RESPOSTA = ""

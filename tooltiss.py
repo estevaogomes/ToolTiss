@@ -6,6 +6,7 @@ from tkinter import filedialog, messagebox
 import config
 from services.TissXmlService import TissXmlService
 from comunication.SoapClient import TissSoapClient
+from services.TissResponseParser import TissResponseParser
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -105,9 +106,13 @@ class TissMasterGUI(ctk.CTk):
         f_switches = ctk.CTkFrame(self.t_config, fg_color="transparent")
         f_switches.pack(pady=5, padx=10, fill="x")
         
-        self.sw_alterar = ctk.CTkSwitch(f_switches, text="ALTERAR_LOTES (Mascarar carteiras)", font=ctk.CTkFont(weight="bold"))
+        self.sw_alterar = ctk.CTkSwitch(f_switches, text="ALTERAR_LOTES (Processar lote)", font=ctk.CTkFont(weight="bold"))
         self.sw_alterar.grid(row=0, column=0, padx=10, pady=4, sticky="w")
         if config.ALTERAR_LOTES: self.sw_alterar.select()
+
+        self.sw_carteiras = ctk.CTkSwitch(f_switches, text="ALTERAR_CARTEIRAS (Mascarar beneficiários)", font=ctk.CTkFont(weight="bold"))
+        self.sw_carteiras.grid(row=0, column=1, padx=10, pady=4, sticky="w")
+        if getattr(config, 'ALTERAR_CARTEIRAS', True): self.sw_carteiras.select()
 
         self.sw_guias = ctk.CTkSwitch(f_switches, text="ALTERAR_GUIAS (Modificar números de guias)", font=ctk.CTkFont(weight="bold"))
         self.sw_guias.grid(row=0, column=1, padx=10, pady=4, sticky="w")
@@ -168,7 +173,7 @@ class TissMasterGUI(ctk.CTk):
     # --- PERSISTÊNCIA DE DADOS (NOVO REQUIREMENTO) ---
     def salvar_configuracoes_locais(self):
         """Coleta o estado atual dos inputs da tela e salva em um arquivo JSON local."""
-        dados_usuario = {"modo_exec": self.modo_exec.get(),"p_origem": self.p_origem.get(),"arq_unico": self.arq_unico.get(),"planilha": self.planilha.get(),"coluna": self.coluna.get(),"url_ws": self.url_ws.get(),"action": self.action.get(),"timeout": self.timeout.get(),"p_resposta": self.p_resposta.get(),"sw_alterar": self.sw_alterar.get(),"sw_guias": self.sw_guias.get(),"sw_enviar": self.sw_enviar.get(),"sw_rand": self.sw_rand.get(),"sw_transacao": self.sw_transacao.get(),"sw_sobrescrever": self.sw_sobrescrever.get()}
+        dados_usuario = {"modo_exec": self.modo_exec.get(),"p_origem": self.p_origem.get(),"arq_unico": self.arq_unico.get(),"planilha": self.planilha.get(),"coluna": self.coluna.get(),"url_ws": self.url_ws.get(),"action": self.action.get(),"timeout": self.timeout.get(),"p_resposta": self.p_resposta.get(),"sw_alterar": self.sw_alterar.get(),"sw_carteiras": self.sw_carteiras.get(),"sw_guias": self.sw_guias.get(),"sw_enviar": self.sw_enviar.get(),"sw_rand": self.sw_rand.get(),"sw_transacao": self.sw_transacao.get(),"sw_sobrescrever": self.sw_sobrescrever.get()}
         try:
             with open(ARQUIVO_SETTINGS, "w", encoding="utf-8") as f:
                 json.dump(dados_usuario, f, indent=4, ensure_ascii=False)
@@ -210,6 +215,7 @@ class TissMasterGUI(ctk.CTk):
                 else:
                     componente.deselect()
             ajustar_switch(self.sw_alterar, "sw_alterar")
+            ajustar_switch(self.sw_carteiras, "sw_carteiras")
             ajustar_switch(self.sw_guias, "sw_guias")
             ajustar_switch(self.sw_enviar, "sw_enviar")
             ajustar_switch(self.sw_rand, "sw_rand")
@@ -260,6 +266,7 @@ class TissMasterGUI(ctk.CTk):
     def executar(self):
         # Sincroniza dinamicamente as escolhas do painel visual com a memória do config.py
         config.ALTERAR_LOTES = bool(self.sw_alterar.get())
+        config.ALTERAR_CARTEIRAS = bool(self.sw_carteiras.get())
         config.ALTERAR_TRANSACAO_LOTE = bool(self.sw_transacao.get())
         config.ALTERAR_GUIAS = bool(self.sw_guias.get())
         config.ENVIAR_WS = bool(self.sw_enviar.get())
@@ -275,7 +282,7 @@ class TissMasterGUI(ctk.CTk):
         except:
             config.TIMEOUT_REQUISICAO = 30
 
-        if config.ALTERAR_LOTES and not os.path.exists(config.CAMINHO_PLANILHA_CARTEIRAS):
+        if config.ALTERAR_CARTEIRAS and not os.path.exists(config.CAMINHO_PLANILHA_CARTEIRAS):
             messagebox.showerror("Erro de Dependência", "A planilha de carteiras especificada não foi encontrada.")
             return
 
@@ -316,6 +323,8 @@ class TissMasterGUI(ctk.CTk):
             self.btn_go.configure(state="normal")
             return
 
+        resultados_relatorio = []
+
         for orig in lt:
             name = os.path.basename(orig)
             dt = os.path.dirname(orig)
@@ -344,9 +353,40 @@ class TissMasterGUI(ctk.CTk):
                     fr.write(resultado)
                 self.log(f"[+] Retorno da operadora gravado com sucesso em: {caminho_resposta}")
 
+                # Parse da resposta e feedback de conteúdo
+                parse_result = TissResponseParser.parse(resultado) if sucesso else None
+                resultados_relatorio.append({"arquivo": name, "parse_result": parse_result})
+
+                if parse_result:
+                    protocolo = parse_result.get("protocolo", "N/A")
+                    situacao = parse_result.get("situacao_comunicacao", "N/A")
+                    guias = parse_result.get("guias", [])
+                    self.log(f"    Protocolo: {protocolo} | Situação: {situacao} | Guias: {len(guias)}")
+                    for guia in guias:
+                        status = guia.get("status", "desconhecido")
+                        num_guia = guia.get("numero_guia_prestador", "?")
+                        motivo = guia.get("motivo") or ""
+                        icone = "✅" if status in ("aceito", "processado") else "❌"
+                        linha = f"    {icone} Guia {num_guia}: {status}"
+                        if motivo:
+                            linha += f" — {motivo}"
+                        self.log(linha)
+                else:
+                    self.log(f"    [!] Não foi possível extrair dados estruturados da resposta.")
+
             # Remove o arquivo temporário apenas se a opção de sobrescrever estiver desativada
             if not config.SOBRESCREVER_ENTRADA and os.path.exists(out):
                 os.remove(out)
+
+        # Gerar relatório CSV consolidado se houve envios
+        if resultados_relatorio:
+            pasta_rel = config.PASTA_RESPOSTA if config.PASTA_RESPOSTA else os.getcwd()
+            caminho_csv = os.path.join(pasta_rel, "relatorio_envio_tiss.csv")
+            try:
+                TissResponseParser.gerar_relatorio_csv(resultados_relatorio, caminho_csv)
+                self.log(f"\n[+] Relatório consolidado gerado: {caminho_csv}")
+            except Exception as e:
+                self.log(f"\n[-] Erro ao gerar relatório CSV: {e}")
 
         sys.stdout = sys.stdout
         self.btn_go.configure(state="normal")

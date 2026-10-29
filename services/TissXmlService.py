@@ -94,7 +94,7 @@ class TissXmlService:
                 # Limpa o namespace uma única vez para evitar múltiplos .endswith()
                 tag_nome = elem.tag.split('}')[-1]
 
-                if tag_nome == "numeroCarteira":
+                if tag_nome == "numeroCarteira" and config.ALTERAR_CARTEIRAS:
                     elem.text = str(random.choice(banco_carteiras))
                     contador_alteracoes += 1
 
