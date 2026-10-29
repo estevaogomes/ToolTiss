@@ -21,12 +21,11 @@ class TissXmlService:
         if elemento.tag.endswith("epilogo") or elemento.tag.endswith("hash"):
             return ""
 
-        # Se o elemento possui texto direto, limpa e adiciona (apenas se não for nós com filhos)
-        # Blocos puramente de dados não devem carregar espaços residuais de recuo do XML.
+        # Se o elemento possui texto direto, adiciona sem strip (apenas se não for nó com filhos).
+        # Regra ANS TISS: whitespace literal é preservado na cadeia de hash; .strip() quebra
+        # o cálculo em arquivos com formatação específica (ex: outrasDespesas, indicacaoClinica).
         if elemento.text and not list(elemento):
-            texto_limpo = elemento.text.strip()
-            if texto_limpo:
-                conteudo += texto_limpo
+            conteudo += elemento.text
 
         # Percorre os nós filhos em ordem estrita de profundidade
         for filho in elemento:
