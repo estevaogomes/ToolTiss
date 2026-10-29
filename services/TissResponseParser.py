@@ -1,6 +1,8 @@
 """
-Parser de resposta SOAP TISS (tissRetornoLoteGuias).
-Extrai dados estruturados de protocolo, situação e glosas por guia.
+Parser de resposta SOAP TISS.
+Suporta dois formatos de retorno:
+1. tissRetornoLoteGuias (resposta síncrona com status por guia)
+2. protocoloRecebimentoWS (confirmação de recebimento com glosas)
 """
 import xml.etree.ElementTree as ET
 
@@ -8,8 +10,23 @@ import xml.etree.ElementTree as ET
 class TissResponseParser:
     """Parseia XML de resposta TISS e extrai resultados por guia."""
 
+    NS = {"ans": "http://www.ans.gov.br/padroes/tiss/schemas"}
+
     @staticmethod
-    def parse(xml_text):
+    def _find_text(parent, tag, ns=None):
+        """Busca texto de uma tag filha, tentando com e sem namespace."""
+        if ns:
+            elem = parent.find(f"ans:{tag}", ns)
+            if elem is not None and elem.text:
+                return elem.text.strip()
+        # Tenta sem namespace (respostas podem omitir prefixo)
+        elem = parent.find(tag)
+        if elem is not None and elem.text:
+            return elem.text.strip()
+        return ""
+
+    @classmethod
+    def parse(cls, xml_text):
         """
         Recebe texto XML da resposta SOAP e retorna dict estruturado:
         {
@@ -19,19 +36,17 @@ class TissResponseParser:
                 {
                     "numero_guia_prestador": str,
                     "numero_protocolo": str,
-                    "status": str,  # "aceito", "glosado", "rejeitado"
+                    "status": str,
                     "motivo": str | None,
                 }
             ]
         }
-        Retorna None se parsing falhar.
+        Retorna None se parsing falhar completamente.
         """
         try:
             root = ET.fromstring(xml_text.encode("iso-8859-1"))
         except Exception:
             return None
-
-        ns = {"ans": "http://www.ans.gov.br/padroes/tiss/schemas"}
 
         resultado = {
             "protocolo": "",
@@ -39,50 +54,136 @@ class TissResponseParser:
             "guias": [],
         }
 
-        # Extrair número do protocolo
-        protocolo_elem = root.find(".//ans:protocolo", ns)
-        if protocolo_elem is not None and protocolo_elem.text:
-            resultado["protocolo"] = protocolo_elem.text.strip()
+        # Tentar formato 1: protocoloRecebimentoWS
+        protocolo_recebimento = cls._parse_protocolo_recebimento(root)
+        if protocolo_recebimento:
+            return protocolo_recebimento
 
-        # Extrair situação da comunicação
-        situacao_elem = root.find(".//ans:situacaoComunicacao", ns)
-        if situacao_elem is not None and situacao_elem.text:
-            resultado["situacao_comunicacao"] = situacao_elem.text.strip()
+        # Tentar formato 2: tissRetornoLoteGuias
+        retorno_lote = cls._parse_retorno_lote(root)
+        if retorno_lote:
+            return retorno_lote
 
-        # Extrair guias com status individual
+        # Nenhum formato reconhecido
+        return None
+
+    @classmethod
+    def _parse_protocolo_recebimento(cls, root):
+        """Parseia formato protocoloRecebimentoWS."""
+        ns = cls.NS
+
+        # Buscar protocoloRecebimento (com ou sem namespace)
+        pr = root.find(".//ans:protocoloRecebimento", ns)
+        if pr is None:
+            pr = root.find(".//protocoloRecebimento")
+        if pr is None:
+            return None
+
+        resultado = {
+            "protocolo": "",
+            "situacao_comunicacao": "recebido",
+            "guias": [],
+        }
+
+        # Número do protocolo
+        det = pr.find("ans:detalheProtocolo", ns) or pr.find("detalheProtocolo")
+        if det is not None:
+            num_proto = cls._find_text(det, "numeroProtocolo", ns)
+            resultado["protocolo"] = num_proto
+
+        # Extrair guias de dadosGuiasProtocolo/dadosGuias
+        for guia_elem in root.findall(".//ans:dadosGuias", ns):
+            guia_info = {
+                "numero_guia_prestador": cls._find_text(guia_elem, "numeroGuiaPrestador", ns),
+                "numero_protocolo": resultado["protocolo"],
+                "status": "recebido",
+                "motivo": None,
+            }
+
+            # Verificar glosas
+            glosa_guia = guia_elem.find("ans:glosaGuia", ns) or guia_elem.find("glosaGuia")
+            if glosa_guia is not None:
+                motivos = []
+                for motivo in glosa_guia.findall("ans:motivoGlosa", ns):
+                    codigo = cls._find_text(motivo, "codigoGlosa", ns)
+                    descricao = cls._find_text(motivo, "descricaoGlosa", ns)
+                    if codigo or descricao:
+                        motivos.append(f"{codigo} - {descricao}" if codigo else descricao)
+                # Tentar também sem namespace
+                if not motivos:
+                    for motivo in glosa_guia.findall("motivoGlosa"):
+                        codigo = cls._find_text(motivo, "codigoGlosa")
+                        descricao = cls._find_text(motivo, "descricaoGlosa")
+                        if codigo or descricao:
+                            motivos.append(f"{codigo} - {descricao}" if codigo else descricao)
+
+                if motivos:
+                    guia_info["status"] = "glosado"
+                    guia_info["motivo"] = "; ".join(motivos)
+
+            # Verificar valores para determinar status mais preciso
+            vl_informado = guia_elem.find("ans:vlInformadoGuia", ns) or guia_elem.find("vlInformadoGuia")
+            if vl_informado is not None:
+                valor_glosa = cls._find_text(vl_informado, "valorGlosa", ns)
+                valor_liberado = cls._find_text(vl_informado, "valorLiberado", ns)
+                if valor_glosa and float(valor_glosa.replace(",", ".")) > 0:
+                    guia_info["status"] = "glosado"
+                elif valor_liberado and float(valor_liberado.replace(",", ".")) > 0:
+                    guia_info["status"] = "aceito"
+
+            resultado["guias"].append(guia_info)
+
+        return resultado if resultado["guias"] else None
+
+    @classmethod
+    def _parse_retorno_lote(cls, root):
+        """Parseia formato tissRetornoLoteGuias (resposta síncrona)."""
+        ns = cls.NS
+
+        # Buscar situacaoComunicacao
+        situacao = root.find(".//ans:situacaoComunicacao", ns)
+        if situacao is None:
+            situacao = root.find(".//situacaoComunicacao")
+        if situacao is None:
+            return None
+
+        resultado = {
+            "protocolo": "",
+            "situacao_comunicacao": situacao.text.strip() if situacao.text else "",
+            "guias": [],
+        }
+
+        # Protocolo
+        protocolo = root.find(".//ans:protocolo", ns) or root.find(".//protocolo")
+        if protocolo is not None and protocolo.text:
+            resultado["protocolo"] = protocolo.text.strip()
+
+        # Guias com status individual
         for guia_proto in root.findall(".//ans:guiaProtocolo", ns):
             guia_info = {
-                "numero_guia_prestador": "",
-                "numero_protocolo": "",
+                "numero_guia_prestador": cls._find_text(guia_proto, "numeroGuiaPrestador", ns),
+                "numero_protocolo": cls._find_text(guia_proto, "numeroProtocolo", ns) or resultado["protocolo"],
                 "status": "desconhecido",
                 "motivo": None,
             }
 
-            num_guia = guia_proto.find("ans:numeroGuiaPrestador", ns)
-            if num_guia is not None and num_guia.text:
-                guia_info["numero_guia_prestador"] = num_guia.text.strip()
-
-            num_proto = guia_proto.find("ans:numeroProtocolo", ns)
-            if num_proto is not None and num_proto.text:
-                guia_info["numero_protocolo"] = num_proto.text.strip()
-
-            # Verificar status: pode estar em diferentes tags dependendo da operadora
-            status_elem = guia_proto.find("ans:situacaoGuia", ns)
+            # Status
+            status_elem = guia_proto.find("ans:situacaoGuia", ns) or guia_proto.find("situacaoGuia")
             if status_elem is None:
-                status_elem = guia_proto.find("ans:statusProcessamento", ns)
+                status_elem = guia_proto.find("ans:statusProcessamento", ns) or guia_proto.find("statusProcessamento")
             if status_elem is not None and status_elem.text:
                 guia_info["status"] = status_elem.text.strip().lower()
 
-            # Motivo de glosa/rejeição
-            motivo_elem = guia_proto.find("ans:motivoGlosa", ns)
+            # Motivo
+            motivo_elem = guia_proto.find("ans:motivoGlosa", ns) or guia_proto.find("motivoGlosa")
             if motivo_elem is None:
-                motivo_elem = guia_proto.find("ans:descricaoMotivo", ns)
+                motivo_elem = guia_proto.find("ans:descricaoMotivo", ns) or guia_proto.find("descricaoMotivo")
             if motivo_elem is not None and motivo_elem.text:
                 guia_info["motivo"] = motivo_elem.text.strip()
 
             resultado["guias"].append(guia_info)
 
-        return resultado
+        return resultado if resultado["guias"] else None
 
     @staticmethod
     def gerar_relatorio_csv(resultados_por_arquivo, caminho_saida):
@@ -103,15 +204,19 @@ class TissResponseParser:
                 "Status",
                 "Motivo Glosa/Rejeição",
             ])
+
             for item in resultados_por_arquivo:
                 arquivo = item["arquivo"]
                 parse = item.get("parse_result")
+
                 if parse is None:
                     writer.writerow([arquivo, "", "", "", "", "ERRO_PARSING", ""])
                     continue
+
                 protocolo = parse.get("protocolo", "")
                 situacao = parse.get("situacao_comunicacao", "")
                 guias = parse.get("guias", [])
+
                 if not guias:
                     writer.writerow([arquivo, protocolo, situacao, "", "", "SEM_GUIAS", ""])
                 else:
