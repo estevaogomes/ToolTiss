@@ -12,7 +12,7 @@ LIST_TAGS = {
 
 # Wrapper tags whose leaf-only children should be flattened into the parent dict
 FLATTEN_TAGS = {
-    "procedimento", "dadosBeneficiario", "identificacaoPrestador",
+    "procedimento", "identificacaoPrestador",
     "identificacaoTransacao", "origem", "destino",
 }
 
@@ -68,11 +68,9 @@ class FormBuilder:
 
         result["tipo"] = guia_tipo
         guia_dict = FormBuilder._elem_to_dict(guia_elem)
-        # Merge guia fields into result
+        # Merge guia fields into result (preserve original XML tag names)
         for key, value in guia_dict.items():
-            # Map cabecalhoGuia -> cabecalho for consistent form access
-            out_key = "cabecalho" if key == "cabecalhoGuia" else key
-            result[out_key] = value
+            result[key] = value
 
         return result
 

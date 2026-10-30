@@ -79,8 +79,8 @@ def test_xml_to_dict_extracts_cabecalho():
     path = _write_temp_xml(XML_SADT_MINIMO)
     try:
         result = FormBuilder.xml_to_dict(path)
-        assert result["cabecalho"]["registroANS"] == "304701"
-        assert result["cabecalho"]["numeroGuiaPrestador"] == "1557971967"
+        assert result["cabecalhoGuia"]["registroANS"] == "304701"
+        assert result["cabecalhoGuia"]["numeroGuiaPrestador"] == "1557971967"
     finally:
         os.unlink(path)
 
