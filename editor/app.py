@@ -1,5 +1,6 @@
 """FastAPI application factory for the TISS Editor."""
 import os
+import sys
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -11,7 +12,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="ToolTiss Editor", docs_url=None, redoc_url=None)
 
     # Resolve paths relative to this file (works inside PyInstaller bundle)
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     templates_dir = os.path.join(base_dir, "templates")
     static_dir = os.path.join(base_dir, "static")
 
