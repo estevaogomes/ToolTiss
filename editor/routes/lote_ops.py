@@ -16,11 +16,14 @@ async def criar_lote(request: Request):
     state = get_state()
     lote_id = state.criar_lote("novo")
     templates = request.app.state.templates
-    return templates.TemplateResponse("lote/lista_guias.html", {
-        "request": request,
-        "lote_id": lote_id,
-        "guias": [],
-    })
+    return templates.TemplateResponse(
+        name="lote/lista_guias.html",
+        context={
+            "request": request,
+            "lote_id": lote_id,
+            "guias": [],
+        },
+    )
 
 
 @router.get("/lote/{lote_id}", response_class=HTMLResponse)
@@ -31,11 +34,14 @@ async def listar_guias(lote_id: str, request: Request):
     if not lote:
         return HTMLResponse("<p>Lote não encontrado.</p>")
     templates = request.app.state.templates
-    return templates.TemplateResponse("lote/lista_guias.html", {
-        "request": request,
-        "lote_id": lote_id,
-        "guias": list(lote.guias.values()),
-    })
+    return templates.TemplateResponse(
+        name="lote/lista_guias.html",
+        context={
+            "request": request,
+            "lote_id": lote_id,
+            "guias": list(lote.guias.values()),
+        },
+    )
 
 
 @router.delete("/lote/{lote_id}/guia/{guia_id}")
@@ -105,9 +111,12 @@ async def enviar_lote(lote_id: str, request: Request):
         csv_path = None
 
     templates = request.app.state.templates
-    return templates.TemplateResponse("lote/resultado_envio.html", {
-        "request": request,
-        "resultados": resultados,
-        "csv_path": csv_path,
-        "lote_id": lote_id,
-    })
+    return templates.TemplateResponse(
+        name="lote/resultado_envio.html",
+        context={
+            "request": request,
+            "resultados": resultados,
+            "csv_path": csv_path,
+            "lote_id": lote_id,
+        },
+    )

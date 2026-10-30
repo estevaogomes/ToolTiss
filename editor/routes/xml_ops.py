@@ -52,8 +52,8 @@ async def carregar_xml(body: CarregarXmlRequest, request: Request):
     tipo = dados.get("tipo", "guiaSP-SADT")
     template_name = _TEMPLATE_MAP.get(tipo, "editor/guia_sadt.html")
     return templates.TemplateResponse(
-        template_name,
-        {
+        name=template_name,
+        context={
             "request": request,
             "guia": dados,
             "guia_id": guia_id,
@@ -114,8 +114,8 @@ async def get_formulario(guia_id: str, request: Request):
             break
 
     return templates.TemplateResponse(
-        template_name,
-        {
+        name=template_name,
+        context={
             "request": request,
             "guia": guia.dados,
             "guia_id": guia_id,
