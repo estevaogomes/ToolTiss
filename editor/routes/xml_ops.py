@@ -1,5 +1,5 @@
 """XML load/save/form endpoints."""
-from typing import Union
+import html
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -12,6 +12,12 @@ router = APIRouter(tags=["xml"])
 
 # Module-level state instance (shared across requests in same process)
 _state = EditorState()
+
+_TEMPLATE_MAP = {
+    "guiaSP-SADT": "editor/guia_sadt.html",
+    "guiaHonorarios": "editor/guia_honorarios.html",
+    "guiaResumoInternacao": "editor/guia_resumo_internacao.html",
+}
 
 
 def get_state() -> EditorState:
@@ -29,7 +35,7 @@ async def carregar_xml(body: CarregarXmlRequest, request: Request):
     try:
         dados = FormBuilder.xml_to_dict(body.caminho)
     except Exception as e:
-        return HTMLResponse(f"<p class='toast toast-error'>Erro ao carregar: {e}</p>")
+        return HTMLResponse(f"<p class='toast toast-error'>Erro ao carregar: {html.escape(str(e))}</p>")
 
     # Create or reuse a lote
     if not state.lotes:
@@ -44,12 +50,7 @@ async def carregar_xml(body: CarregarXmlRequest, request: Request):
     # Render the appropriate form template
     templates = request.app.state.templates
     tipo = dados.get("tipo", "guiaSP-SADT")
-    template_map = {
-        "guiaSP-SADT": "editor/guia_sadt.html",
-        "guiaHonorarios": "editor/guia_honorarios.html",
-        "guiaResumoInternacao": "editor/guia_resumo_internacao.html",
-    }
-    template_name = template_map.get(tipo, "editor/guia_sadt.html")
+    template_name = _TEMPLATE_MAP.get(tipo, "editor/guia_sadt.html")
     return templates.TemplateResponse(
         template_name,
         {
@@ -103,12 +104,7 @@ async def get_formulario(guia_id: str, request: Request):
         return HTMLResponse("<p>Guia não encontrada.</p>", status_code=404)
 
     templates = request.app.state.templates
-    template_map = {
-        "guiaSP-SADT": "editor/guia_sadt.html",
-        "guiaHonorarios": "editor/guia_honorarios.html",
-        "guiaResumoInternacao": "editor/guia_resumo_internacao.html",
-    }
-    template_name = template_map.get(guia.tipo, "editor/guia_sadt.html")
+    template_name = _TEMPLATE_MAP.get(guia.tipo, "editor/guia_sadt.html")
 
     # Find lote_id for this guia
     lote_id = None
