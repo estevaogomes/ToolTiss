@@ -1,0 +1,24 @@
+<h3>Lote {{ lote_id }}</h3>
+{% if guias %}
+{% for guia in guias %}
+<div class="guia-item {% if guia.modificado %}modificado{% endif %}"
+     hx-get="/api/formulario/{{ guia.id }}"
+     hx-target="#main-content"
+     hx-swap="innerHTML">
+    <span>{{ guia.tipo }} — {{ guia.dados.cabecalhoGuia.numeroGuiaPrestador | default(guia.id) }}</span>
+    <button class="btn btn-danger btn-sm"
+            hx-delete="/api/lote/{{ lote_id }}/guia/{{ guia.id }}"
+            hx-target="closest .guia-item"
+            hx-swap="outerHTML"
+            onclick="event.stopPropagation()">✕</button>
+</div>
+{% endfor %}
+<button class="btn btn-primary" style="margin-top:12px; width:100%;"
+        hx-post="/api/lote/{{ lote_id }}/enviar"
+        hx-target="#main-content"
+        hx-swap="innerHTML">
+    📤 Enviar Lote
+</button>
+{% else %}
+<p class="empty-state">Nenhuma guia neste lote.</p>
+{% endif %}

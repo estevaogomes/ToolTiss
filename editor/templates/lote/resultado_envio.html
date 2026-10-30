@@ -1,0 +1,49 @@
+<h2>📊 Resultado do Envio — Lote {{ lote_id }}</h2>
+{% if csv_path %}
+<p>📄 Relatório CSV gerado: <code>{{ csv_path }}</code></p>
+{% endif %}
+
+<table class="tabela-dinamica" style="margin-top:16px;">
+    <thead>
+        <tr>
+            <th>Guia</th>
+            <th>Protocolo</th>
+            <th>Status</th>
+            <th>Motivo</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in resultados %}
+        {% if r.parse_result and r.parse_result.guias %}
+            {% for guia in r.parse_result.guias %}
+            <tr>
+                <td>{{ guia.numero_guia_prestador | default(r.arquivo) }}</td>
+                <td>{{ r.parse_result.protocolo | default('—') }}</td>
+                <td>
+                    {% if guia.status in ('aceito', 'recebido', 'processado') %}
+                        ✅ {{ guia.status }}
+                    {% else %}
+                        ❌ {{ guia.status }}
+                    {% endif %}
+                </td>
+                <td>{{ guia.motivo | default('') }}</td>
+            </tr>
+            {% endfor %}
+        {% elif not r.sucesso %}
+            <tr>
+                <td>{{ r.arquivo }}</td>
+                <td>—</td>
+                <td>❌ ERRO</td>
+                <td>{{ r.erro | default('Falha de comunicação') }}</td>
+            </tr>
+        {% else %}
+            <tr>
+                <td>{{ r.arquivo }}</td>
+                <td>—</td>
+                <td>⚠️ SEM DADOS</td>
+                <td>Resposta não pôde ser parseada</td>
+            </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
