@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToolTiss Editor</title>
+    <link rel="stylesheet" href="/static/css/editor.css">
+    <script src="/static/js/htmx.min.js"></script>
+    <script src="/static/js/editor.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <h2>📋 Lotes</h2>
+            <div id="lote-list">
+                <p class="empty-state">Nenhum lote aberto.</p>
+            </div>
+            <button class="btn btn-primary" hx-post="/api/lote/novo" hx-target="#lote-list" hx-swap="innerHTML">
+                + Novo Lote
+            </button>
+        </aside>
+        <main class="content" id="main-content">
+            <div class="welcome">
+                <h1>🔧 ToolTiss Editor</h1>
+                <p>Crie um novo lote ou abra um XML existente para começar.</p>
+                <button class="btn btn-primary" onclick="abrirArquivo()">
+                    📂 Abrir XML
+                </button>
+            </div>
+        </main>
+    </div>
+    <div id="toast-container"></div>
+</body>
+</html>
