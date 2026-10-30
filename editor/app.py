@@ -28,6 +28,6 @@ def create_app() -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request):
-        return app.state.templates.TemplateResponse(name="base.html", context={"request": request})
+        return app.state.templates.TemplateResponse(request, name="base.html")
 
     return app

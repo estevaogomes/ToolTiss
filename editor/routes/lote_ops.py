@@ -17,9 +17,9 @@ async def criar_lote(request: Request):
     lote_id = state.criar_lote("novo")
     templates = request.app.state.templates
     return templates.TemplateResponse(
+        request,
         name="lote/lista_guias.html",
         context={
-            "request": request,
             "lote_id": lote_id,
             "guias": [],
         },
@@ -35,9 +35,9 @@ async def listar_guias(lote_id: str, request: Request):
         return HTMLResponse("<p>Lote não encontrado.</p>")
     templates = request.app.state.templates
     return templates.TemplateResponse(
+        request,
         name="lote/lista_guias.html",
         context={
-            "request": request,
             "lote_id": lote_id,
             "guias": list(lote.guias.values()),
         },
@@ -112,9 +112,9 @@ async def enviar_lote(lote_id: str, request: Request):
 
     templates = request.app.state.templates
     return templates.TemplateResponse(
+        request,
         name="lote/resultado_envio.html",
         context={
-            "request": request,
             "resultados": resultados,
             "csv_path": csv_path,
             "lote_id": lote_id,
