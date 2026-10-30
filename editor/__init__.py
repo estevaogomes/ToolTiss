@@ -1,0 +1,1 @@
+"""Editor TISS — FastAPI-based local XML editor."""
