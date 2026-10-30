@@ -1,5 +1,8 @@
 """Bidirectional conversion between TISS XML and structured dicts."""
+import io
+import re
 import xml.etree.ElementTree as ET
+from typing import Union
 
 # Tags whose children are always lists (repeating elements)
 LIST_TAGS = {
@@ -31,15 +34,18 @@ class FormBuilder:
         Returns dict with keys: tipo, cabecalho, <guia fields>, _namespaces.
         Excludes <epilogo> and <hash> (hash is recalculated on save).
         """
-        # Collect namespaces before parsing
+        # Single I/O pass: read file bytes once, extract namespaces from
+        # raw XML declarations, then parse the tree from the same bytes.
+        with open(xml_path, "rb") as f:
+            raw_bytes = f.read()
+
         namespaces = {}
-        for event, elem in ET.iterparse(xml_path, events=["start-ns"]):
-            prefix, uri = elem
-            if prefix:
-                namespaces[prefix] = uri
+        header = raw_bytes[:4096].decode("iso-8859-1", errors="replace")
+        for match in re.finditer(r'xmlns:(\w+)="([^"]+)"', header):
+            namespaces[match.group(1)] = match.group(2)
 
         parser = ET.XMLParser(encoding="iso-8859-1")
-        tree = ET.parse(xml_path, parser)
+        tree = ET.parse(io.BytesIO(raw_bytes), parser)
         root = tree.getroot()
 
         result = {"_namespaces": namespaces}
@@ -55,19 +61,23 @@ class FormBuilder:
                 guia_tipo = GUIA_TYPE_MAP[tag_local]
                 break
 
-        if guia_elem is not None:
-            result["tipo"] = guia_tipo
-            guia_dict = FormBuilder._elem_to_dict(guia_elem)
-            # Merge guia fields into result
-            for key, value in guia_dict.items():
-                # Map cabecalhoGuia -> cabecalho for consistent form access
-                out_key = "cabecalho" if key == "cabecalhoGuia" else key
-                result[out_key] = value
+        if guia_elem is None:
+            raise ValueError(
+                f"Guia type not found. Expected one of: {list(GUIA_TYPE_MAP.keys())}"
+            )
+
+        result["tipo"] = guia_tipo
+        guia_dict = FormBuilder._elem_to_dict(guia_elem)
+        # Merge guia fields into result
+        for key, value in guia_dict.items():
+            # Map cabecalhoGuia -> cabecalho for consistent form access
+            out_key = "cabecalho" if key == "cabecalhoGuia" else key
+            result[out_key] = value
 
         return result
 
     @staticmethod
-    def _elem_to_dict(elem) -> dict | str | list:
+    def _elem_to_dict(elem) -> Union[dict, str, list]:
         """Recursively convert an ElementTree element to dict/list/string.
 
         - Leaf nodes (no children) -> stripped text string
