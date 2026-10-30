@@ -1,85 +1,85 @@
-# 🥁 ToolTiss (Ba-dum-tss! 🥁)
+# ToolTiss Editor
 
-O **ToolTiss** é um orquestrador e transmissor de lotes XML no padrão **TISS (Agência Nacional de Saúde Suplementar)**. Ele foi desenvolvido para automatizar o processo de edição, mascaramento de dados sensíveis de beneficiários (em conformidade com as boas práticas de segurança de dados), recálculo de assinaturas digitais (Hash MD5) e transmissão via protocolo SOAP diretamente para o WebService de operadoras de saúde.
+Editor web local para guias TISS (padrão ANS de faturamento em saúde). Carrega XMLs existentes em formulários estruturados, permite edição de campos, salva com hash ANS correto e transmite via SOAP — tudo rodando no navegador.
 
-A aplicação conta com uma interface gráfica moderna e fluida desenvolvida em **CustomTkinter** e pode ser compilada como um executável autônomo para o usuário final.
+## Requisitos
 
----
+- Python 3.9+
+- tkinter (para diálogos nativos de arquivo; geralmente já incluso na instalação padrão do Python)
 
-## 🛠️ Funcionalidades
+## Instalação
 
-- **Duplo Escopo de Execução:** Permite processar e enviar um único arquivo XML TISS de teste ou realizar a varredura e transmissão sequencial de uma pasta inteira de arquivos.
-- **Mascaramento Automatizado (`ALTERAR_LOTES`):** Substituição aleatória e segura de números de carteirinhas de beneficiários com base em uma planilha de referência (CSV/Excel).
-- **Gerenciador de Identificadores (`ALTERAR_GUIAS`):** Sorteio de novos números de guias do prestador, guias principais e senhas para evitar rejeições por duplicidade no servidor.
-- **Recálculo de Hash ANS:** Algoritmo integrado que limpa o Hash antigo, extrai os valores textuais puros das guias modificadas conforme a regra de canonização (C14N) e embutirá a nova assinatura MD5 válida.
-- **Higienização Estrutural TISS:** Edita o arquivo XML em tempo real para iniciar estritamente a partir da tag `<cabecalho>`, eliminando wrappers intermediários como `<prestadorParaOperadora>` e `<epilogo>`, mantendo apenas o conteúdo útil exigido pelo envelope SOAP.
-- **Controle Total de Ambiente:** Interface gráfica com aba dedicada para gerenciar em tempo real todas as chaves do arquivo `config.py` (URLs, Actions, Timeouts e chaves liga/desliga de fluxo).
-- **Manual Integrado:** Botão nativo na tela que extrai e abre o manual do usuário em PDF diretamente do executável.
+```bash
+pip install -r requirements.txt
+```
 
----
+## Execução
 
-## 📂 Estrutura do Projeto
+```bash
+python main_editor.py
+```
 
-```text
-ToolTiss/
-├── comunication/
-│   └── SoapClient.py          # Cliente HTTP SOAP (envelopamento e transmissão)
+O editor encontra automaticamente uma porta livre no intervalo configurado (padrão 54321–54400), inicia o servidor e abre o navegador. Para desativar a abertura automática ou alterar o intervalo de portas, edite `config.py`:
+
+```python
+EDITOR_PORTA_INICIAL = 54321
+EDITOR_PORTA_FINAL = 54400
+EDITOR_AUTO_ABRIR_BROWSER = True
+```
+
+## Estrutura do Projeto
+
+```
+editor/
+├── app.py                  # FastAPI app factory
+├── routes/
+│   ├── xml_ops.py          # Carregar/salvar XML, renderizar formulários
+│   ├── lote_ops.py         # Gerenciamento de lotes e envio SOAP
+│   └── dialogs.py          # Diálogos de arquivo via tkinter headless
 ├── services/
-│   ├── DataExtractorService.py# Leitura e extração de dados das planilhas
-│   └── TissXmlService.py      # Tratamento estrutural do XML e recálculo de Hash
-├── config.py                  # Arquivo de propriedades e variáveis globais
-├── tooltiss.py                # Arquivo principal (Interface Gráfica CustomTkinter)
-├── manual_usuario.pdf         # Manual do usuário para o operador leigo
-├── bateria.ico                # Ícone visual do executável (Trocadilho ToolTiss 🔋)
-└── .gitignore                 # Filtro de rastreamento do Git
+│   ├── state.py            # Estado em memória (lotes e guias)
+│   └── form_builder.py     # Conversão XML ↔ dict com preservação de namespaces
+├── templates/
+│   ├── base.html           # Template base com CSS e HTMX
+│   ├── editor/
+│   │   ├── guia_sadt.html
+│   │   ├── guia_honorarios.html
+│   │   ├── guia_resumo_internacao.html
+│   │   └── components/     # Componentes reutilizáveis (cabeçalho, beneficiário, procedimentos)
+│   └── lote/
+│       ├── lista_guias.html
+│       └── resultado_envio.html
+└── static/
+    ├── css/editor.css
+    └── js/
+        ├── htmx.min.js
+        └── editor.js
+
+main_editor.py              # Ponto de entrada (PyInstaller target)
+config.py                   # Configurações globais
+comunication/SoapClient.py  # Cliente SOAP TISS (legado)
+services/TissResponseParser.py  # Parser de respostas TISS (legado)
 ```
 
----
-
-## 🚀 Como Rodar o Projeto
-
-### Pré-requisitos
-
-Certifique-se de ter o Python instalado (recomendado 3.10 ou superior) e instale as dependências do projeto:
+## Testes
 
 ```bash
-pip install customtkinter requests
+python -m pytest tests/editor/ -v
 ```
 
-### Execução via Código Fonte
-
-Para iniciar a interface gráfica pelo terminal, execute:
+## Empacotamento (.exe)
 
 ```bash
-python tooltiss.py
+pyinstaller --onefile --name ToolTissEditor \
+  --add-data "editor/templates:editor/templates" \
+  --add-data "editor/static:editor/static" \
+  main_editor.py
 ```
 
----
+O executável gerado estará em `dist/ToolTissEditor.exe`.
 
-## 📦 Como Gerar o Executável (`.exe`)
+## Notas
 
-Para compilar a aplicação em um arquivo único e independente para o Windows, garantindo que a biblioteca visual e o manual em PDF fiquem embutidos, execute o PyInstaller através do módulo do Python:
-
-```bash
-python -m PyInstaller --clean --noconsole --onefile --collect-all customtkinter --add-data "manual.pdf;." -n "ToolTiss" -i "bateria.ico" tooltiss.py
-```
-
-O arquivo finalizado **`ToolTiss.exe`** será gerado dentro da pasta **`dist/`** e estará pronto para distribuição, sem necessidade de instalação de dependências na máquina do usuário.
-
----
-
-## 🚨 Configuração do `.gitignore`
-
-Este repositório está configurado para **nunca** rastrear ou expor dados reais de produção ou arquivos gerados durante a compilação. Certifique-se de que seu arquivo `.gitignore` contenha:
-
-```text
-__pycache__/
-*.pyc
-build/
-dist/
-*.spec
-*.csv
-*.txt
-*.xml
-!tooltiss.py
-```
+- A transmissão SOAP (`enviar_lote`) requer Windows devido à dependência do módulo `nt` na cadeia de imports do `SoapClient`. Em Linux/macOS, o editor funciona normalmente para carga, edição e salvamento de XMLs; o endpoint de envio retorna erro 501 informando a indisponibilidade.
+- O conversor `dict_to_xml` ainda está como stub (`NotImplementedError`). O salvamento de guias editadas de volta para XML será implementado em uma iteração futura.
+- Todos os arquivos XML são processados com encoding ISO-8859-1 conforme exigido pelo padrão TISS.
