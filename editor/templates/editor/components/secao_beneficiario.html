@@ -1,16 +1,18 @@
 <details open>
     <summary>👤 Dados do Beneficiário</summary>
+    {% set benef = guia.dadosBeneficiario if guia.dadosBeneficiario is defined and guia.dadosBeneficiario is mapping else (guia.beneficiario if guia.beneficiario is defined and guia.beneficiario is mapping else {}) %}
+    {% set benef_prefix = 'dadosBeneficiario' if guia.dadosBeneficiario is defined and guia.dadosBeneficiario is mapping else 'beneficiario' %}
     <div class="section-body form-grid">
         <div class="form-field">
             <label>Nº Carteira</label>
-            <input type="text" name="dadosBeneficiario[numeroCarteira]"
-                   value="{{ guia.dadosBeneficiario.numeroCarteira | default('') }}">
+            <input type="text" name="{{ benef_prefix }}[numeroCarteira]"
+                   value="{{ benef.numeroCarteira | default('') }}">
         </div>
         <div class="form-field">
             <label>Atendimento RN</label>
-            <select name="dadosBeneficiario[atendimentoRN]">
-                <option value="N" {% if guia.dadosBeneficiario.atendimentoRN | default('N') == 'N' %}selected{% endif %}>Não</option>
-                <option value="S" {% if guia.dadosBeneficiario.atendimentoRN | default('N') == 'S' %}selected{% endif %}>Sim</option>
+            <select name="{{ benef_prefix }}[atendimentoRN]">
+                <option value="N" {% if benef.atendimentoRN | default('N') == 'N' %}selected{% endif %}>Não</option>
+                <option value="S" {% if benef.atendimentoRN | default('N') == 'S' %}selected{% endif %}>Sim</option>
             </select>
         </div>
     </div>

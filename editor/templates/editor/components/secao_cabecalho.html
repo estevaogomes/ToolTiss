@@ -14,7 +14,7 @@
         <div class="form-field">
             <label>Guia Principal</label>
             <input type="text" name="cabecalhoGuia[guiaPrincipal]"
-                   value="{{ guia.cabecalhoGuia.guiaPrincipal | default('') }}">
+                   value="{{ (guia.cabecalhoGuia.guiaPrincipal if guia.cabecalhoGuia is mapping and 'guiaPrincipal' in guia.cabecalhoGuia else '') | default('') }}">
         </div>
     </div>
 </details>

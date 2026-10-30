@@ -2,6 +2,7 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
         <h2>📝 Guia de Honorários</h2>
         <div>
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='/lote/{{ lote_id }}'">← Voltar</button>
             <button type="button" class="btn btn-primary" onclick="salvarGuia('{{ guia_id }}')">Salvar</button>
         </div>
     </div>
@@ -10,54 +11,146 @@
     {% include "editor/components/secao_cabecalho.html" %}
     {% endwith %}
 
-    <details>
-        <summary>Dados de Autorizacao</summary>
+    <details open>
+        <summary>Dados de Autorização</summary>
         <div class="section-body form-grid">
             <div class="form-field">
-                <label>N Guia Operadora</label>
-                <input type="text" name="dadosAutorizacao[numeroGuiaOperadora]"
-                       value="{{ guia.dadosAutorizacao.numeroGuiaOperadora | default('') }}">
+                <label>Nº Guia Operadora</label>
+                <input type="text" name="numeroGuiaOperadora"
+                       value="{{ guia.numeroGuiaOperadora | default('') }}">
             </div>
             <div class="form-field">
-                <label>Data Autorizacao</label>
-                <input type="date" name="dadosAutorizacao[dataAutorizacao]"
-                       value="{{ guia.dadosAutorizacao.dataAutorizacao | default('') }}">
+                <label>Senha</label>
+                <input type="text" name="senha"
+                       value="{{ guia.senha | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Data Emissão</label>
+                <input type="date" name="dataEmissaoGuia"
+                       value="{{ guia.dataEmissaoGuia | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Guia Solicitação Internação</label>
+                <input type="text" name="guiaSolicInternacao"
+                       value="{{ guia.guiaSolicInternacao | default('') }}">
             </div>
         </div>
     </details>
 
-    {% with guia=guia %}
-    {% include "editor/components/secao_beneficiario.html" %}
-    {% endwith %}
-
-    <details>
-        <summary>Dados do Profissional Executante</summary>
+    <details open>
+        <summary>👤 Dados do Beneficiário</summary>
         <div class="section-body form-grid">
             <div class="form-field">
-                <label>Codigo Prestador</label>
-                <input type="text" name="dadosExecutante[contratadoExecutante][codigoPrestadorNaOperadora]"
-                       value="{{ guia.dadosExecutante.contratadoExecutante.codigoPrestadorNaOperadora | default('') }}">
+                <label>Nº Carteira</label>
+                <input type="text" name="beneficiario[numeroCarteira]"
+                       value="{{ guia.beneficiario.numeroCarteira | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Atendimento RN</label>
+                <select name="beneficiario[atendimentoRN]">
+                    <option value="N" {% if guia.beneficiario.atendimentoRN | default('N') == 'N' %}selected{% endif %}>Não</option>
+                    <option value="S" {% if guia.beneficiario.atendimentoRN | default('N') == 'S' %}selected{% endif %}>Sim</option>
+                </select>
+            </div>
+        </div>
+    </details>
+
+    <details>
+        <summary>Local do Contratado</summary>
+        <div class="section-body form-grid">
+            <div class="form-field">
+                <label>Código na Operadora</label>
+                <input type="text" name="localContratado[codigoContratado][codigoNaOperadora]"
+                       value="{{ guia.localContratado.codigoContratado.codigoNaOperadora | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Nome Contratado</label>
+                <input type="text" name="localContratado[nomeContratado]"
+                       value="{{ guia.localContratado.nomeContratado | default('') }}">
             </div>
             <div class="form-field">
                 <label>CNES</label>
-                <input type="text" name="dadosExecutante[CNES]"
-                       value="{{ guia.dadosExecutante.CNES | default('') }}">
-            </div>
-            <div class="form-field">
-                <label>Conselho</label>
-                <input type="text" name="profissionalExecutante[conselhoProfissional]"
-                       value="{{ guia.profissionalExecutante.conselhoProfissional | default('') }}">
-            </div>
-            <div class="form-field">
-                <label>N Conselho</label>
-                <input type="text" name="profissionalExecutante[numeroConselhoProfissional]"
-                       value="{{ guia.profissionalExecutante.numeroConselhoProfissional | default('') }}">
+                <input type="text" name="localContratado[cnes]"
+                       value="{{ guia.localContratado.cnes | default('') }}">
             </div>
         </div>
     </details>
 
-    {% with guia=guia %}
-    {% include "editor/components/tabela_procedimentos.html" %}
-    {% endwith %}
-</form>
+    <details>
+        <summary>Dados do Contratado Executante</summary>
+        <div class="section-body form-grid">
+            <div class="form-field">
+                <label>Código na Operadora</label>
+                <input type="text" name="dadosContratadoExecutante[codigonaOperadora]"
+                       value="{{ guia.dadosContratadoExecutante.codigonaOperadora | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>CNES Contratado Executante</label>
+                <input type="text" name="dadosContratadoExecutante[cnesContratadoExecutante]"
+                       value="{{ guia.dadosContratadoExecutante.cnesContratadoExecutante | default('') }}">
+            </div>
+        </div>
+    </details>
 
+    <details>
+        <summary>Dados da Internação</summary>
+        <div class="section-body form-grid">
+            <div class="form-field">
+                <label>Data Início Faturamento</label>
+                <input type="date" name="dadosInternacao[dataInicioFaturamento]"
+                       value="{{ guia.dadosInternacao.dataInicioFaturamento | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Data Fim Faturamento</label>
+                <input type="date" name="dadosInternacao[dataFimFaturamento]"
+                       value="{{ guia.dadosInternacao.dataFimFaturamento | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Caráter Atendimento</label>
+                <input type="text" name="dadosInternacao[caraterAtendimento]"
+                       value="{{ guia.dadosInternacao.caraterAtendimento | default('') }}">
+            </div>
+        </div>
+    </details>
+
+    <details open>
+        <summary>🏥 Procedimentos Realizados ({{ guia.procedimentosRealizados | default([]) | length }})</summary>
+        <div class="section-body">
+            <table class="tabela-dinamica">
+                <thead>
+                    <tr>
+                        <th>Seq</th><th>Data</th><th>Hora Início</th><th>Hora Fim</th>
+                        <th>Código</th><th>Descrição</th><th>Qtd</th>
+                        <th>Valor Unit.</th><th>Valor Total</th>
+                    </tr>
+                </thead>
+                <tbody id="procedimentos-body">
+                    {% for proc in guia.procedimentosRealizados | default([]) %}
+                    <tr>
+                        <td><input name="procedimentosRealizados[{{ loop.index0 }}][sequencialItem]" value="{{ proc.sequencialItem | default('') }}"></td>
+                        <td><input name="procedimentosRealizados[{{ loop.index0 }}][dataExecucao]" value="{{ proc.dataExecucao | default('') }}"></td>
+                        <td><input name="procedimentosRealizados[{{ loop.index0 }}][horaInicial]" value="{{ proc.horaInicial | default('') }}"></td>
+                        <td><input name="procedimentosRealizados[{{ loop.index0 }}][horaFinal]" value="{{ proc.horaFinal | default('') }}"></td>
+                        <td><input name="procedimentosRealizados[{{ loop.index0 }}][codigoProcedimento]" value="{{ proc.codigoProcedimento | default('') }}"></td>
+                        <td><input name="procedimentosRealizados[{{ loop.index0 }}][descricaoProcedimento]" value="{{ proc.descricaoProcedimento | default('') }}"></td>
+                        <td><input name="procedimentosRealizados[{{ loop.index0 }}][quantidadeExecutada]" value="{{ proc.quantidadeExecutada | default('') }}"></td>
+                        <td><input name="procedimentosRealizados[{{ loop.index0 }}][valorUnitario]" value="{{ proc.valorUnitario | default('') }}"></td>
+                        <td><input name="procedimentosRealizados[{{ loop.index0 }}][valorTotal]" value="{{ proc.valorTotal | default('') }}"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details>
+        <summary>Valor Total Honorários</summary>
+        <div class="section-body form-grid">
+            <div class="form-field">
+                <label>Valor Total</label>
+                <input type="text" name="valorTotalHonorarios"
+                       value="{{ guia.valorTotalHonorarios | default('') }}" readonly>
+            </div>
+        </div>
+    </details>
+</form>

@@ -1,5 +1,8 @@
+{% set procs = guia.procedimentosExecutados if guia.procedimentosExecutados is defined and guia.procedimentosExecutados is iterable and guia.procedimentosExecutados is not string else (guia.procedimentosRealizados if guia.procedimentosRealizados is defined and guia.procedimentosRealizados is iterable and guia.procedimentosRealizados is not string else []) %}
+{% set proc_prefix = 'procedimentosExecutados' if guia.procedimentosExecutados is defined and guia.procedimentosExecutados is iterable and guia.procedimentosExecutados is not string else 'procedimentosRealizados' %}
+{% set proc_label = 'Procedimentos Executados' if proc_prefix == 'procedimentosExecutados' else 'Procedimentos Realizados' %}
 <details open>
-    <summary>🏥 Procedimentos Executados ({{ guia.procedimentosExecutados | default([]) | length }})</summary>
+    <summary>🏥 {{ proc_label }} ({{ procs | length }})</summary>
     <div class="section-body">
         <table class="tabela-dinamica">
             <thead>
@@ -10,17 +13,17 @@
                 </tr>
             </thead>
             <tbody id="procedimentos-body">
-                {% for proc in guia.procedimentosExecutados | default([]) %}
+                {% for proc in procs %}
                 <tr>
-                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][sequencialItem]" value="{{ proc.sequencialItem | default('') }}"></td>
-                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][dataExecucao]" value="{{ proc.dataExecucao | default('') }}"></td>
-                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][horaInicial]" value="{{ proc.horaInicial | default('') }}"></td>
-                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][horaFinal]" value="{{ proc.horaFinal | default('') }}"></td>
-                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][codigoProcedimento]" value="{{ proc.codigoProcedimento | default(proc.procedimento.codigoProcedimento | default('')) }}"></td>
-                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][descricaoProcedimento]" value="{{ proc.descricaoProcedimento | default(proc.procedimento.descricaoProcedimento | default('')) }}"></td>
-                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][quantidadeExecutada]" value="{{ proc.quantidadeExecutada | default('') }}"></td>
-                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][valorUnitario]" value="{{ proc.valorUnitario | default('') }}"></td>
-                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][valorTotal]" value="{{ proc.valorTotal | default('') }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][sequencialItem]" value="{{ proc.sequencialItem | default('') }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][dataExecucao]" value="{{ proc.dataExecucao | default('') }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][horaInicial]" value="{{ proc.horaInicial | default('') }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][horaFinal]" value="{{ proc.horaFinal | default('') }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][codigoProcedimento]" value="{{ proc.codigoProcedimento | default(proc.procedimento.codigoProcedimento | default('')) }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][descricaoProcedimento]" value="{{ proc.descricaoProcedimento | default(proc.procedimento.descricaoProcedimento | default('')) }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][quantidadeExecutada]" value="{{ proc.quantidadeExecutada | default('') }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][valorUnitario]" value="{{ proc.valorUnitario | default('') }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][valorTotal]" value="{{ proc.valorTotal | default('') }}"></td>
                     <td>
                         <button type="button" class="btn btn-danger btn-sm"
                                 hx-delete="/api/procedimento/remover/{{ guia_id }}/{{ loop.index0 }}"

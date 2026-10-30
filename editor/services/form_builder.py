@@ -6,7 +6,7 @@ from typing import Union
 
 # Tags whose children are always lists (repeating elements)
 LIST_TAGS = {
-    "procedimentoExecutado", "despesa", "diagnostico",
+    "procedimentoExecutado", "procedimentoRealizado", "despesa", "diagnostico",
     "profissionalExecutante", "equipeSadt", "motivoGlosa",
 }
 
