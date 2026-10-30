@@ -10,43 +10,60 @@ ToolTiss is a TISS (Agência Nacional de Saúde Suplementar) XML batch orchestra
 
 ```bash
 # Install dependencies
-pip install customtkinter requests
+pip install customtkinter requests fastapi uvicorn jinja2 python-multipart
 
 # Optional: Excel support for wallet number spreadsheets
 pip install pandas openpyxl
 
-# Run GUI
+# Run GUI (batch processing)
 python tooltiss.py
 
 # Run headless CLI pipeline (uses config.py flags)
 python app.py
 
-# Build Windows executable (single-file, embeds manual.pdf + customtkinter assets)
+# Run web-based TISS editor (opens browser on localhost)
+python main_editor.py
+
+# Run tests
+python -m pytest tests/ -v
+
+# Run a single test file
+python -m pytest tests/editor/test_state.py -v
+
+# Build Windows executable (GUI)
 python -m PyInstaller --clean --noconsole --onefile \
   --collect-all customtkinter \
   --add-data "manual.pdf;." \
   -n "ToolTiss" -i "bateria.ico" tooltiss.py
-```
 
-No test suite, linter, or formatter configured.
+# Build Windows executable (Editor)
+python -m PyInstaller --clean --noconsole --onefile \
+  --add-data "editor/templates;editor/templates" \
+  --add-data "editor/static;editor/static" \
+  -n "ToolTissEditor" -i "bateria.ico" main_editor.py
+```
 
 ## Architecture
 
-### Dual Entry Points
+### Entry Points
 
-- **`tooltiss.py`** — Primary production entry. CustomTkinter GUI with tabs for config editing, file/folder selection, processing, and transmission. Reads/writes `config.py` at runtime through the UI. Embeds `manual.pdf` for end-user help.
-- **`app.py`** — Headless CLI pipeline for testing/automation. Auto-generates stub `contas.xml` and `dados.csv` if missing. Respects same `config.py` feature flags as GUI.
+- **`tooltiss.py`** — Batch processing GUI (CustomTkinter). Tabs for config, file selection, processing, transmission. Reads/writes `config.py` at runtime. Embeds `manual.pdf`.
+- **`app.py`** — Headless CLI pipeline for testing/automation. Auto-generates stub files if missing. Same `config.py` flags as GUI.
+- **`main_editor.py`** — Web-based TISS XML editor (FastAPI + Jinja2 + HTMX). Starts uvicorn on a random localhost port (54321–54400), opens browser. In-memory state only. Separate from batch GUI.
 
 ### Config-Driven Feature Flags (`config.py`)
 
 All processing steps are toggled via module-level booleans. Both entry points read these directly — there is no config abstraction layer:
 
-- `ALTERAR_LOTES` — enable wallet number masking
+- `ALTERAR_LOTES` — enable batch processing pipeline (hash + guias + transação)
+- `ALTERAR_CARTEIRAS` — enable wallet number masking (independent of ALTERAR_LOTES)
 - `ALTERAR_GUIAS` — enable guide/provider number randomization
 - `ALTERAR_TRANSACAO_LOTE` — enable batch/transaction ID mutation
 - `UTILIZAR_RANDOM_TRANSACAO` — random vs increment for transaction IDs
 - `ENVIAR_WS` — transmit to operator SOAP endpoint after processing
 - `SOBRESCREVER_ENTRADA` — overwrite input file vs write to separate output
+- `EDITOR_PORTA_INICIAL/FINAL` — port range for web editor localhost server
+- `EDITOR_AUTO_ABRIR_BROWSER` — auto-open browser when editor starts
 
 URLs, timeouts, and file paths also live here. The GUI edits this file in place.
 
@@ -65,8 +82,24 @@ Entire pipeline uses **ISO-8859-1** (Latin-1) for XML parsing, hash computation,
 
 XML files use ANS-defined namespaces. Code must register all discovered prefixes before writing to prevent ElementTree from renaming tags to `ns0:tag`, which invalidates the SOAP payload. Both `processar_alteracao_tiss()` and `preparar_conteudo_xml()` handle this independently.
 
+### Web Editor Module (`editor/`)
+
+FastAPI + Jinja2 + HTMX application for interactive TISS XML editing. Separate from the batch GUI.
+
+- **`editor/app.py`** — FastAPI app factory. Mounts static files, configures Jinja2Templates, registers route modules.
+- **`editor/services/state.py`** — In-memory session state (`EditorState`, `Lote`, `GuiaDados`). No persistence. Uses reverse index for O(1) guia lookup by ID. Validates lote_id existence on add.
+- **`editor/services/form_builder.py`** — Bidirectional XML ↔ dict conversion. Preserves namespaces via `_namespaces` metadata key. Excludes `<hash>` and `<epilogo>` from dict (hash recalculated on save via `TissXmlService.atualizar_hash_tiss()`).
+- **`editor/routes/`** — API endpoints: `xml_ops.py` (load/save/form), `lote_ops.py` (batch management + SOAP send), `dialogs.py` (tkinter headless file dialogs).
+- **`editor/templates/`** — Jinja2 templates with HTMX for interactivity. Guia-specific forms (`guia_sadt.html`, `guia_honorarios.html`, `guia_resumo_internacao.html`) with reusable components.
+- **`main_editor.py`** — Entry point. Finds free port in configured range, starts uvicorn, opens browser.
+
+### Test Infrastructure
+
+Tests live in `tests/` mirroring source structure. Run with `python -m pytest tests/ -v`. Tests use `sys.path.insert` for imports (no pyproject.toml yet). Each test module has its own package `__init__.py`.
+
 ## File Conventions
 
 - `.gitignore` excludes all `.xml`, `.csv`, `.txt`, `build/`, `dist/`, `*.spec` — never commit data files or build artifacts
 - Debug outputs (`resposta.txt`, `ultimo_envio_soap.txt`) are generated at runtime in working directory
 - `Arquivos sem Ocorrencias/` — folder for processed files that had no issues (Portuguese naming intentional)
+- Config comments and method names use Portuguese to match domain terminology
