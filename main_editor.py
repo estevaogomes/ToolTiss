@@ -5,10 +5,11 @@ import webbrowser
 
 import uvicorn
 
+import config
 from editor.app import create_app
 
 
-def encontrar_porta_livre(inicio: int = 54321, fim: int = 54400) -> int:
+def encontrar_porta_livre(inicio: int, fim: int) -> int:
     """Find an available port in the given range."""
     for porta in range(inicio, fim + 1):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -21,12 +22,13 @@ def encontrar_porta_livre(inicio: int = 54321, fim: int = 54400) -> int:
 
 
 if __name__ == "__main__":
-    porta = encontrar_porta_livre()
+    porta = encontrar_porta_livre(config.EDITOR_PORTA_INICIAL, config.EDITOR_PORTA_FINAL)
     app = create_app()
 
-    def abrir_browser():
-        webbrowser.open(f"http://127.0.0.1:{porta}")
+    if config.EDITOR_AUTO_ABRIR_BROWSER:
+        def abrir_browser():
+            webbrowser.open(f"http://127.0.0.1:{porta}")
 
-    threading.Timer(1.5, abrir_browser).start()
+        threading.Timer(1.5, abrir_browser).start()
 
     uvicorn.run(app, host="127.0.0.1", port=porta, log_level="warning")

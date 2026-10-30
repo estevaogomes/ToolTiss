@@ -51,9 +51,15 @@ async def enviar_lote(lote_id: str, request: Request):
     """Send all guias in a lote via SOAP and return results table."""
     # Lazy imports to avoid import-time failures on non-Windows platforms
     from editor.services.form_builder import FormBuilder
-    from comunication.SoapClient import TissSoapClient
-    from services.TissResponseParser import TissResponseParser
-    import config
+    try:
+        from comunication.SoapClient import TissSoapClient
+        from services.TissResponseParser import TissResponseParser
+        import config
+    except ImportError as e:
+        return JSONResponse(
+            {"erro": f"Transmissão SOAP indisponível nesta plataforma: {e}"},
+            status_code=501,
+        )
 
     state = get_state()
     lote = state.get_lote(lote_id)
