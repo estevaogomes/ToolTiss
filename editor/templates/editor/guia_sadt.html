@@ -1,0 +1,127 @@
+<form id="guia-form" data-guia-id="{{ guia_id }}" data-lote-id="{{ lote_id }}">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2>Guia SADT</h2>
+        <div>
+            <button type="button" class="btn btn-primary" onclick="salvarGuia('{{ guia_id }}')">Salvar</button>
+            <button type="button" class="btn btn-primary" onclick="enviarGuia('{{ guia_id }}')">Enviar</button>
+        </div>
+    </div>
+
+    {% with guia=guia %}
+    {% include "editor/components/secao_cabecalho.html" %}
+    {% endwith %}
+
+    <details>
+        <summary>Dados de Autorizacao</summary>
+        <div class="section-body form-grid">
+            <div class="form-field">
+                <label>N Guia Operadora</label>
+                <input type="text" name="dadosAutorizacao[numeroGuiaOperadora]"
+                       value="{{ guia.dadosAutorizacao.numeroGuiaOperadora | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Data Autorizacao</label>
+                <input type="date" name="dadosAutorizacao[dataAutorizacao]"
+                       value="{{ guia.dadosAutorizacao.dataAutorizacao | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Senha</label>
+                <input type="text" name="dadosAutorizacao[senha]"
+                       value="{{ guia.dadosAutorizacao.senha | default('') }}">
+            </div>
+        </div>
+    </details>
+
+    {% with guia=guia %}
+    {% include "editor/components/secao_beneficiario.html" %}
+    {% endwith %}
+
+    <details>
+        <summary>Dados do Solicitante</summary>
+        <div class="section-body form-grid">
+            <div class="form-field">
+                <label>Codigo Prestador Solicitante</label>
+                <input type="text" name="dadosSolicitante[contratadoSolicitante][codigoPrestadorNaOperadora]"
+                       value="{{ guia.dadosSolicitante.contratadoSolicitante.codigoPrestadorNaOperadora | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Nome Contratado</label>
+                <input type="text" name="dadosSolicitante[nomeContratadoSolicitante]"
+                       value="{{ guia.dadosSolicitante.nomeContratadoSolicitante | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Conselho Profissional</label>
+                <input type="text" name="dadosSolicitante[profissionalSolicitante][conselhoProfissional]"
+                       value="{{ guia.dadosSolicitante.profissionalSolicitante.conselhoProfissional | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>N Conselho</label>
+                <input type="text" name="dadosSolicitante[profissionalSolicitante][numeroConselhoProfissional]"
+                       value="{{ guia.dadosSolicitante.profissionalSolicitante.numeroConselhoProfissional | default('') }}">
+            </div>
+        </div>
+    </details>
+
+    {% with guia=guia %}
+    {% include "editor/components/tabela_procedimentos.html" %}
+    {% endwith %}
+
+    <details>
+        <summary>Dados de Atendimento</summary>
+        <div class="section-body form-grid">
+            <div class="form-field">
+                <label>Tipo Atendimento</label>
+                <input type="text" name="dadosAtendimento[tipoAtendimento]"
+                       value="{{ guia.dadosAtendimento.tipoAtendimento | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Indicacao Acidente</label>
+                <input type="text" name="dadosAtendimento[indicacaoAcidente]"
+                       value="{{ guia.dadosAtendimento.indicacaoAcidente | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Regime Atendimento</label>
+                <input type="text" name="dadosAtendimento[regimeAtendimento]"
+                       value="{{ guia.dadosAtendimento.regimeAtendimento | default('') }}">
+            </div>
+        </div>
+    </details>
+</form>
+
+<script>
+async function salvarGuia(guiaId) {
+    const form = document.getElementById('guia-form');
+    const formData = new FormData(form);
+    // Convert FormData to nested object
+    const dados = {};
+    for (const [key, value] of formData.entries()) {
+        const parts = key.replace(/\]/g, '').split('[');
+        let current = dados;
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (!(parts[i] in current)) current[parts[i]] = {};
+            current = current[parts[i]];
+        }
+        current[parts[parts.length - 1]] = value;
+    }
+    // Update state via API then save
+    try {
+        const saveResp = await fetch('/api/salvar-xml', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({guia_id: guiaId, dados: dados})
+        });
+        const result = await saveResp.json();
+        if (result.sucesso) {
+            showToast('Salvo com sucesso! Hash: ' + result.hash, 'success');
+        } else {
+            showToast('Erro: ' + result.erro, 'error');
+        }
+    } catch (e) {
+        showToast('Erro ao salvar: ' + e.message, 'error');
+    }
+}
+
+async function enviarGuia(guiaId) {
+    showToast('Envio individual em desenvolvimento. Use "Enviar Lote" na sidebar.', 'error');
+}
+</script>

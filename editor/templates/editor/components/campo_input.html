@@ -1,0 +1,12 @@
+<div class="form-field">
+    <label for="{{ name }}">{{ label }}</label>
+    {% if type == "select" %}
+    <select name="{{ name }}" id="{{ name }}">
+        {% for opt in options %}
+        <option value="{{ opt.value }}" {% if opt.value == value %}selected{% endif %}>{{ opt.label }}</option>
+        {% endfor %}
+    </select>
+    {% else %}
+    <input type="{{ type | default('text') }}" name="{{ name }}" id="{{ name }}" value="{{ value | default('') }}">
+    {% endif %}
+</div>

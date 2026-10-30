@@ -1,0 +1,20 @@
+<details open>
+    <summary>Cabeçalho da Guia</summary>
+    <div class="section-body form-grid">
+        <div class="form-field">
+            <label>Registro ANS</label>
+            <input type="text" name="cabecalhoGuia[registroANS]"
+                   value="{{ guia.cabecalhoGuia.registroANS | default('') }}">
+        </div>
+        <div class="form-field">
+            <label>Nº Guia Prestador</label>
+            <input type="text" name="cabecalhoGuia[numeroGuiaPrestador]"
+                   value="{{ guia.cabecalhoGuia.numeroGuiaPrestador | default('') }}">
+        </div>
+        <div class="form-field">
+            <label>Guia Principal</label>
+            <input type="text" name="cabecalhoGuia[guiaPrincipal]"
+                   value="{{ guia.cabecalhoGuia.guiaPrincipal | default('') }}">
+        </div>
+    </div>
+</details>

@@ -1,0 +1,132 @@
+<form id="guia-form" data-guia-id="{{ guia_id }}" data-lote-id="{{ lote_id }}">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2>Resumo de Internacao</h2>
+        <div>
+            <button type="button" class="btn btn-primary" onclick="salvarGuia('{{ guia_id }}')">Salvar</button>
+        </div>
+    </div>
+
+    {% with guia=guia %}
+    {% include "editor/components/secao_cabecalho.html" %}
+    {% endwith %}
+
+    <details>
+        <summary>Dados de Autorizacao</summary>
+        <div class="section-body form-grid">
+            <div class="form-field">
+                <label>N Guia Operadora</label>
+                <input type="text" name="dadosAutorizacao[numeroGuiaOperadora]"
+                       value="{{ guia.dadosAutorizacao.numeroGuiaOperadora | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Data Autorizacao</label>
+                <input type="date" name="dadosAutorizacao[dataAutorizacao]"
+                       value="{{ guia.dadosAutorizacao.dataAutorizacao | default('') }}">
+            </div>
+        </div>
+    </details>
+
+    {% with guia=guia %}
+    {% include "editor/components/secao_beneficiario.html" %}
+    {% endwith %}
+
+    <details open>
+        <summary>Dados da Internacao</summary>
+        <div class="section-body form-grid">
+            <div class="form-field">
+                <label>Carater Internacao</label>
+                <input type="text" name="dadosInternacao[caraterInternacao]"
+                       value="{{ guia.dadosInternacao.caraterInternacao | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Tipo Internacao</label>
+                <input type="text" name="dadosInternacao[tipoInternacao]"
+                       value="{{ guia.dadosInternacao.tipoInternacao | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Data Entrada</label>
+                <input type="date" name="dadosInternacao[dataInicio]"
+                       value="{{ guia.dadosInternacao.dataInicio | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Data Prevista Saida</label>
+                <input type="date" name="dadosInternacao[dataPrevistaFim]"
+                       value="{{ guia.dadosInternacao.dataPrevistaFim | default('') }}">
+            </div>
+            <div class="form-field">
+                <label>Data Efetiva Saida</label>
+                <input type="date" name="dadosInternacao[dataEfetivaFim]"
+                       value="{{ guia.dadosInternacao.dataEfetivaFim | default('') }}">
+            </div>
+        </div>
+    </details>
+
+    <details>
+        <summary>Diagnosticos</summary>
+        <div class="section-body">
+            <table class="tabela-dinamica">
+                <thead><tr><th>Tipo</th><th>CID</th><th>Descricao</th></tr></thead>
+                <tbody>
+                    {% for diag in guia.diagnosticos | default([]) %}
+                    <tr>
+                        <td><input name="diagnosticos[{{ loop.index0 }}][tipoDiagnostico]" value="{{ diag.tipoDiagnostico | default('') }}"></td>
+                        <td><input name="diagnosticos[{{ loop.index0 }}][codigoCID]" value="{{ diag.codigoCID | default(diag.codigoDiagnostico | default('')) }}"></td>
+                        <td><input name="diagnosticos[{{ loop.index0 }}][descricaoDiagnostico]" value="{{ diag.descricaoDiagnostico | default('') }}"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    {% with guia=guia %}
+    {% include "editor/components/tabela_procedimentos.html" %}
+    {% endwith %}
+
+    <details>
+        <summary>Equipe Medica</summary>
+        <div class="section-body">
+            <table class="tabela-dinamica">
+                <thead><tr><th>Codigo</th><th>Nome</th><th>Conselho</th><th>N Conselho</th><th>CBOS</th></tr></thead>
+                <tbody>
+                    {% for prof in guia.equipeMedica | default(guia.profissionalExecutante | default([]) if guia.profissionalExecutante is mapping else []) %}
+                    <tr>
+                        <td><input name="equipeMedica[{{ loop.index0 }}][codigoPrestadorNaOperadora]" value="{{ prof.codigoPrestadorNaOperadora | default('') }}"></td>
+                        <td><input name="equipeMedica[{{ loop.index0 }}][nomeProfissional]" value="{{ prof.nomeProfissional | default('') }}"></td>
+                        <td><input name="equipeMedica[{{ loop.index0 }}][conselhoProfissional]" value="{{ prof.conselhoProfissional | default('') }}"></td>
+                        <td><input name="equipeMedica[{{ loop.index0 }}][numeroConselhoProfissional]" value="{{ prof.numeroConselhoProfissional | default('') }}"></td>
+                        <td><input name="equipeMedica[{{ loop.index0 }}][CBOS]" value="{{ prof.CBOS | default('') }}"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+</form>
+
+<script>
+async function salvarGuia(guiaId) {
+    const form = document.getElementById('guia-form');
+    const formData = new FormData(form);
+    const dados = {};
+    for (const [key, value] of formData.entries()) {
+        const parts = key.replace(/\]/g, '').split('[');
+        let current = dados;
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (!(parts[i] in current)) current[parts[i]] = {};
+            current = current[parts[i]];
+        }
+        current[parts[parts.length - 1]] = value;
+    }
+    try {
+        const saveResp = await fetch('/api/salvar-xml', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({guia_id: guiaId, dados: dados})
+        });
+        const result = await saveResp.json();
+        if (result.sucesso) showToast('Salvo! Hash: ' + result.hash, 'success');
+        else showToast('Erro: ' + result.erro, 'error');
+    } catch (e) { showToast('Erro: ' + e.message, 'error'); }
+}
+</script>

@@ -1,0 +1,29 @@
+<details open>
+    <summary>Procedimentos Executados ({{ guia.procedimentosExecutados | default([]) | length }})</summary>
+    <div class="section-body">
+        <table class="tabela-dinamica">
+            <thead>
+                <tr>
+                    <th>Seq</th><th>Data</th><th>Hora Início</th><th>Hora Fim</th>
+                    <th>Código</th><th>Descrição</th><th>Qtd</th>
+                    <th>Valor Unit.</th><th>Valor Total</th>
+                </tr>
+            </thead>
+            <tbody id="procedimentos-body">
+                {% for proc in guia.procedimentosExecutados | default([]) %}
+                <tr>
+                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][sequencialItem]" value="{{ proc.sequencialItem | default('') }}"></td>
+                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][dataExecucao]" value="{{ proc.dataExecucao | default('') }}"></td>
+                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][horaInicial]" value="{{ proc.horaInicial | default('') }}"></td>
+                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][horaFinal]" value="{{ proc.horaFinal | default('') }}"></td>
+                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][codigoProcedimento]" value="{{ proc.codigoProcedimento | default(proc.procedimento.codigoProcedimento | default('')) }}"></td>
+                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][descricaoProcedimento]" value="{{ proc.descricaoProcedimento | default(proc.procedimento.descricaoProcedimento | default('')) }}"></td>
+                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][quantidadeExecutada]" value="{{ proc.quantidadeExecutada | default('') }}"></td>
+                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][valorUnitario]" value="{{ proc.valorUnitario | default('') }}"></td>
+                    <td><input name="procedimentosExecutados[{{ loop.index0 }}][valorTotal]" value="{{ proc.valorTotal | default('') }}"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</details>
