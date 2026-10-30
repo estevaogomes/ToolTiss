@@ -9,7 +9,6 @@ dist/
 
 # Arquivos locais de log e dados que você não quer compartilhar
 *.csv
-*.txt
 *.xml
 *.zip
 *.json
