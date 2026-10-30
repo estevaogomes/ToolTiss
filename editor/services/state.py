@@ -25,6 +25,7 @@ class EditorState:
 
     def __init__(self):
         self.lotes: dict[str, Lote] = {}
+        self._guia_index: dict[str, str] = {}  # guia_id -> lote_id
 
     def criar_lote(self, numero_lote: str) -> str:
         lote_id = str(uuid.uuid4())[:8]
@@ -37,6 +38,8 @@ class EditorState:
     def adicionar_guia(
         self, lote_id: str, tipo: str, dados: dict, caminho_arquivo: str | None = None
     ) -> str:
+        if lote_id not in self.lotes:
+            raise ValueError(f"Lote {lote_id} não encontrado")
         guia_id = str(uuid.uuid4())[:8]
         self.lotes[lote_id].guias[guia_id] = GuiaDados(
             id=guia_id,
@@ -44,16 +47,20 @@ class EditorState:
             dados=dados,
             caminho_arquivo=caminho_arquivo,
         )
+        self._guia_index[guia_id] = lote_id
         return guia_id
 
     def remover_guia(self, lote_id: str, guia_id: str) -> None:
         if lote_id in self.lotes:
             self.lotes[lote_id].guias.pop(guia_id, None)
+            self._guia_index.pop(guia_id, None)
 
     def get_guia(self, guia_id: str) -> GuiaDados | None:
-        for lote in self.lotes.values():
-            if guia_id in lote.guias:
-                return lote.guias[guia_id]
+        lote_id = self._guia_index.get(guia_id)
+        if lote_id is not None:
+            lote = self.lotes.get(lote_id)
+            if lote is not None:
+                return lote.guias.get(guia_id)
         return None
 
     def marcar_modificado(self, guia_id: str) -> None:
