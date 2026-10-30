@@ -19,8 +19,8 @@
                     <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][dataExecucao]" value="{{ proc.dataExecucao | default('') }}"></td>
                     <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][horaInicial]" value="{{ proc.horaInicial | default('') }}"></td>
                     <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][horaFinal]" value="{{ proc.horaFinal | default('') }}"></td>
-                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][codigoProcedimento]" value="{{ proc.codigoProcedimento | default(proc.procedimento.codigoProcedimento | default('')) }}"></td>
-                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][descricaoProcedimento]" value="{{ proc.descricaoProcedimento | default(proc.procedimento.descricaoProcedimento | default('')) }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][codigoProcedimento]" value="{{ proc.codigoProcedimento | default((proc.procedimento | default({})).get('codigoProcedimento', '')) }}"></td>
+                    <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][descricaoProcedimento]" value="{{ proc.descricaoProcedimento | default((proc.procedimento | default({})).get('descricaoProcedimento', '')) }}"></td>
                     <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][quantidadeExecutada]" value="{{ proc.quantidadeExecutada | default('') }}"></td>
                     <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][valorUnitario]" value="{{ proc.valorUnitario | default('') }}"></td>
                     <td><input name="{{ proc_prefix }}[{{ loop.index0 }}][valorTotal]" value="{{ proc.valorTotal | default('') }}"></td>
