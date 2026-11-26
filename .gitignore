@@ -12,3 +12,11 @@ dist/
 *.xml
 *.zip
 *.json
+*.txt
+documentacao/
+editor/
+Arquivos com Ocorrencia/
+Arquivos sem Ocorrencias/
+test_files/
+tests/
+Testando/

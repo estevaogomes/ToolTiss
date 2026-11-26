@@ -28,7 +28,7 @@ class TissResponseParser:
     @classmethod
     def parse(cls, xml_text):
         """
-        Recebe texto XML da resposta SOAP e retorna dict estruturado:
+        Recebe texto da resposta SOAP e retorna dict estruturado:
         {
             "protocolo": str,
             "situacao_comunicacao": str,
@@ -43,9 +43,56 @@ class TissResponseParser:
         }
         Retorna None se parsing falhar completamente.
         """
+        # Decodifica bytes para string se necessário
+        if isinstance(xml_text, bytes):
+            xml_text = xml_text.decode("iso-8859-1")
+
         try:
-            root = ET.fromstring(xml_text.encode("iso-8859-1"))
+            # Parse XML por tags conforme schema TISS (caminho padrão).
+            # Respostas SOAP TISS chegam em ISO-8859-1; xml_text já foi decodificado acima.
+            root = ET.fromstring(xml_text)
         except Exception:
+            # Fallback: algumas operadoras retornam mensagens de erro em texto puro
+            # (não-XML) como "Erro 5012: ... Erro: 5014 - CODIGO HASH INVALIDO".
+            # Extrai todos os códigos de erro via regex apenas quando o parse XML falha.
+            import re
+            erros_simples = re.findall(r'(\d{4})\s*-\s*([^.]*)', xml_text, re.IGNORECASE)
+            erros_dois_pontos = re.findall(r'[Ee]rro\s+(\d{4}):\s*([^.]*)', xml_text, re.IGNORECASE)
+
+            codigos_vistos = set()
+            motivos = []
+            for codigo, descricao in erros_simples + erros_dois_pontos:
+                if codigo not in codigos_vistos:
+                    codigos_vistos.add(codigo)
+                    desc_limpa = descricao.strip().rstrip(".;:,")
+                    motivos.append(f"{codigo} - {desc_limpa}" if desc_limpa else codigo)
+
+            if motivos:
+                return {
+                    "protocolo": "",
+                    "situacao_comunicacao": "erro",
+                    "guias": [{
+                        "numero_guia_prestador": "",
+                        "numero_protocolo": "",
+                        "status": "rejeitado",
+                        "motivo": "; ".join(motivos),
+                    }],
+                }
+            # Fallback final: se o conteúdo não é XML e nenhum código de erro foi
+            # identificado via regex, registra o texto bruto como motivo para que
+            # o relatório CSV nunca perca a informação de rejeição.
+            texto_limpo = xml_text.strip()[:500]
+            if texto_limpo:
+                return {
+                    "protocolo": "",
+                    "situacao_comunicacao": "erro",
+                    "guias": [{
+                        "numero_guia_prestador": "",
+                        "numero_protocolo": "",
+                        "status": "rejeitado",
+                        "motivo": texto_limpo,
+                    }],
+                }
             return None
 
         resultado = {
@@ -67,15 +114,60 @@ class TissResponseParser:
         # Nenhum formato reconhecido
         return None
 
+    # Namespace TISS em notação Clark (usado quando o XML declara xmlns= sem prefixo)
+    NS_CLARK = "{http://www.ans.gov.br/padroes/tiss/schemas}"
+
+    @classmethod
+    def _find_element(cls, parent, tag):
+        """Busca elemento filho tentando três formas: prefixo ans:, Clark notation e sem namespace."""
+        # 1. Com prefixo ans: (quando XML declara xmlns:ans=...)
+        elem = parent.find(f"ans:{tag}", cls.NS)
+        if elem is not None:
+            return elem
+        # 2. Com namespace Clark (quando XML declara xmlns= sem prefixo)
+        elem = parent.find(f"{cls.NS_CLARK}{tag}")
+        if elem is not None:
+            return elem
+        # 3. Sem namespace
+        elem = parent.find(tag)
+        return elem
+
+    @classmethod
+    def _find_all_elements(cls, parent, tag):
+        """Busca todos os elementos correspondentes (recursivo .//), tentando três formas de namespace.
+        Usa .// pois as tags TISS na resposta SOAP estão aninhadas dentro de S:Envelope/S:Body
+        e não são filhas diretas do elemento pai passado."""
+        resultados = parent.findall(f".//ans:{tag}", cls.NS)
+        if not resultados:
+            resultados = parent.findall(f".//{cls.NS_CLARK}{tag}")
+        if not resultados:
+            resultados = parent.findall(f".//{tag}")
+        return resultados
+
+    @classmethod
+    def _find_text(cls, parent, tag, ns=None):
+        """Busca texto de uma tag filha, tentando com e sem namespace."""
+        elem = cls._find_element(parent, tag)
+        if elem is not None and elem.text:
+            return elem.text.strip()
+        return ""
+
     @classmethod
     def _parse_protocolo_recebimento(cls, root):
         """Parseia formato protocoloRecebimentoWS."""
-        ns = cls.NS
-
-        # Buscar protocoloRecebimento (com ou sem namespace)
-        pr = root.find(".//ans:protocoloRecebimento", ns)
+        # Buscar protocoloRecebimento usando busca recursiva profunda (.//).
+        # O elemento está aninhado dentro de S:Envelope/S:Body/protocoloRecebimentoWS/recebimentoLote,
+        # então busca por filho direto na raiz sempre falha. Usamos .// com notação Clark
+        # pois o XML de resposta usa namespace padrão (xmlns= sem prefixo ans:).
+        ns_clark = cls.NS_CLARK
+        pr = root.find(f".//{ns_clark}protocoloRecebimento")
         if pr is None:
-            pr = root.find(".//protocoloRecebimento")
+            # Fallback adicional: busca por local name via iter() caso o namespace seja diferente
+            for candidate in root.iter():
+                local_name = candidate.tag.split("}")[-1] if "}" in candidate.tag else candidate.tag
+                if local_name == "protocoloRecebimento":
+                    pr = candidate
+                    break
         if pr is None:
             return None
 
@@ -86,50 +178,46 @@ class TissResponseParser:
         }
 
         # Número do protocolo
-        det = pr.find("ans:detalheProtocolo", ns) or pr.find("detalheProtocolo")
+        det = cls._find_element(pr, "detalheProtocolo")
         if det is not None:
-            num_proto = cls._find_text(det, "numeroProtocolo", ns)
+            num_proto = cls._find_text(det, "numeroProtocolo")
             resultado["protocolo"] = num_proto
 
         # Extrair guias de dadosGuiasProtocolo/dadosGuias
-        for guia_elem in root.findall(".//ans:dadosGuias", ns):
+        for guia_elem in cls._find_all_elements(root, "dadosGuias"):
             guia_info = {
-                "numero_guia_prestador": cls._find_text(guia_elem, "numeroGuiaPrestador", ns),
+                "numero_guia_prestador": cls._find_text(guia_elem, "numeroGuiaPrestador"),
                 "numero_protocolo": resultado["protocolo"],
                 "status": "recebido",
                 "motivo": None,
             }
 
             # Verificar glosas
-            glosa_guia = guia_elem.find("ans:glosaGuia", ns) or guia_elem.find("glosaGuia")
+            glosa_guia = cls._find_element(guia_elem, "glosaGuia")
             if glosa_guia is not None:
                 motivos = []
-                for motivo in glosa_guia.findall("ans:motivoGlosa", ns):
-                    codigo = cls._find_text(motivo, "codigoGlosa", ns)
-                    descricao = cls._find_text(motivo, "descricaoGlosa", ns)
+                for motivo in cls._find_all_elements(glosa_guia, "motivoGlosa"):
+                    codigo = cls._find_text(motivo, "codigoGlosa")
+                    descricao = cls._find_text(motivo, "descricaoGlosa")
                     if codigo or descricao:
                         motivos.append(f"{codigo} - {descricao}" if codigo else descricao)
-                # Tentar também sem namespace
-                if not motivos:
-                    for motivo in glosa_guia.findall("motivoGlosa"):
-                        codigo = cls._find_text(motivo, "codigoGlosa")
-                        descricao = cls._find_text(motivo, "descricaoGlosa")
-                        if codigo or descricao:
-                            motivos.append(f"{codigo} - {descricao}" if codigo else descricao)
 
                 if motivos:
                     guia_info["status"] = "glosado"
                     guia_info["motivo"] = "; ".join(motivos)
 
             # Verificar valores para determinar status mais preciso
-            vl_informado = guia_elem.find("ans:vlInformadoGuia", ns) or guia_elem.find("vlInformadoGuia")
+            vl_informado = cls._find_element(guia_elem, "vlInformadoGuia")
             if vl_informado is not None:
-                valor_glosa = cls._find_text(vl_informado, "valorGlosa", ns)
-                valor_liberado = cls._find_text(vl_informado, "valorLiberado", ns)
-                if valor_glosa and float(valor_glosa.replace(",", ".")) > 0:
-                    guia_info["status"] = "glosado"
-                elif valor_liberado and float(valor_liberado.replace(",", ".")) > 0:
-                    guia_info["status"] = "aceito"
+                valor_glosa = cls._find_text(vl_informado, "valorGlosa")
+                valor_liberado = cls._find_text(vl_informado, "valorLiberado")
+                try:
+                    if valor_glosa and float(valor_glosa.replace(",", ".")) > 0:
+                        guia_info["status"] = "glosado"
+                    elif valor_liberado and float(valor_liberado.replace(",", ".")) > 0:
+                        guia_info["status"] = "aceito"
+                except ValueError:
+                    pass
 
             resultado["guias"].append(guia_info)
 

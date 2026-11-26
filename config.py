@@ -6,6 +6,18 @@ CAMINHO_PLANILHA_CARTEIRAS = "dados.csv"
 UTILIZAR_RANDOM_TRANSACAO = True
 CAMINHO_XML_ENVIAR = "saida.xml"
 URL_OPERADORA = "http://or2tasyhtmlpj01:8082/TISS40200OPS/tissLoteGuias"
+
+# Mapeamento de versão TISS para URL do WebService.
+# A chave é o valor exato da tag <Padrao> no XML (ex: "4.03.00", "4.02.00").
+# O sistema detecta automaticamente a versão de cada arquivo antes do envio
+# e seleciona o endpoint correspondente. Se a versão não estiver mapeada,
+# usa URL_OPERADORA como fallback.
+URLS_POR_VERSAO_TISS = {
+    "4.03.00": "http://or2tasyhtmlpj01:8082/TISS40300OPS/tissLoteGuias",
+    "4.02.00": "http://or2tasyhtmlpj01:8082/TISS40200OPS/tissLoteGuias",
+    "4.01.00": "http://or2tasyhtmlpj01:8082/TISS40100OPS/tissLoteGuias",
+}
+
 ENVIAR_WS = True
 ALTERAR_TRANSACAO_LOTE = True
 ALTERAR_LOTES = True
@@ -13,7 +25,10 @@ ALTERAR_CARTEIRAS = True  # Controla apenas o mascaramento de numeroCarteira (in
 ALTERAR_GUIAS = True
 SOBRESCREVER_ENTRADA = False
 PASTA_RESPOSTA = ""
-    
+MOVER_ARQUIVOS_ENVIADOS = True  # Move arquivos enviados com sucesso para subpasta "Enviados" dentro da pasta de origem
+NOME_PASTA_ENVIADOS = "Enviados"  # Nome da subpasta destino dos arquivos enviados com sucesso
+MAX_THREADS_ENVIO = 4  # Número máximo de threads paralelas para envio de arquivos (1 = sequencial)
+
     # Nome da coluna a ser lida na planilha (Opcional, mude para None se quiser ler a 1ª coluna)
 COLUNA_ALVO = "num_carteira"
 
